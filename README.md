@@ -1,4 +1,5 @@
 # 🌟 **Kaltak24** 🌟
+[**Visit the live app here!**](https://kaltak24.vercel.app)
 
 Welcome to **Kaltak24**! A dynamic and visually appealing **single-page web app** built using **React JS**, **TypeScript**, and other exciting technologies. The app displays content fetched from Reddit and offers a modern, interactive user experience.
 
