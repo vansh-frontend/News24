@@ -38,4 +38,4 @@ Clone and run the app on your local machine with these simple steps:
 ### 1. **Clone the Repository**:
 
 ```bash
-git clone https://github.com/your-username/kaltak24.git
+git clone https://github.com/vansh-frontend/News24
