@@ -1,149 +1,142 @@
-import { useEffect, useState } from "react";
-import { FaNewspaper, FaGithub, FaLinkedin } from "react-icons/fa";
-import { AiOutlineLoading3Quarters, AiOutlineMail } from "react-icons/ai";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import Header from './components/Header';
 
-type RedditPost = {
-  data: {
-    id: string;
-    title: string;
-    selftext: string;
-    permalink: string;
-    author: string;
-    thumbnail: string;
-  };
-};
+const API_KEY = 'ndh_QkQomjM1OY1V8qRpJqBQex9NhngP1JPLYnpGlYpNG98';
+const BASE_URL = 'https://api.newsdatahub.com/v1/news';
 
-const News = () => {
-  const [redditArticles, setRedditArticles] = useState<RedditPost[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const NewsSkeletonLoader = () => (
+  <div className="skeleton-grid">
+    {[...Array(6)].map((_, index) => (
+      <div key={index} className="skeleton-card">
+        <div
+          className="skeleton-image"
+          style={{
+            backgroundImage: `url(https://picsum.photos/600/360?random=${index})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div className="skeleton-line short" />
+        <div className="skeleton-line xsmall" />
+        <div className="skeleton-lines">
+          <div className="skeleton-line" />
+          <div className="skeleton-line shorter" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+interface Article {
+  id: string;
+  title: string;
+  source_title: string;
+  pub_date: string;
+  description: string;
+  article_link: string;
+}
+
+const News: React.FC = () => {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRedditTechNews = async () => {
-    try {
-      const response = await fetch(
-        "https://www.reddit.com/r/technology/top.json?limit=5"
-      );
-      const data = await response.json();
-      if (!data?.data?.children) throw new Error("Invalid Reddit response.");
-      setRedditArticles(data.data.children);
-    } catch (err) {
-      setError("Failed to fetch Reddit articles.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    fetchRedditTechNews();
-    const interval = setInterval(fetchRedditTechNews, 60000); // Refresh every minute
-    return () => clearInterval(interval);
+    const fetchNews = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(BASE_URL, {
+          headers: { 'X-Api-Key': API_KEY },
+          params: {
+            per_page: 10,
+            fields: 'id,title,source_title,pub_date,description,article_link',
+            language: 'en',
+            country: 'us',
+          },
+        });
+
+        // Keep it simple: set articles from API response
+        const data = response.data?.data || [];
+        setArticles(data as Article[]);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
   }, []);
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <AiOutlineLoading3Quarters className="w-12 h-12 animate-spin text-teal-500" />
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="flex items-center justify-center h-screen text-red-500 text-lg">
-        {error}
-      </div>
-    );
-
   return (
-    <div className="bg-gray-50 text-gray-900 min-h-screen">
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="container">
-          <div className="content">
-            <div className="text">
-              <h1>Discover the Latest Tech News</h1>
-              <p>
-                Stay ahead with trending news and insights from the world of
-                technology, curated for you.
+    <div className="app-bg">
+      <div className="container page-content">
+        {/* Header Section */}
+        <Header />
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-wrap">
+            <div className="error-box">
+              <p className="error-text">
+                <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {error}
               </p>
-              <a href="#news" className="explore-btn">
-                Explore Now
-              </a>
             </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* News Section */}
-      <section id="news" className="news">
-        <div className="container">
-          <h2>Trending News</h2>
-          <div className="articles">
-            {redditArticles.map((post) => (
-              <div key={post.data.id} className="article">
-                <div className="image-container">
-                  {post.data.thumbnail && post.data.thumbnail.startsWith("http") ? (
-                    <img
-                      src={post.data.thumbnail}
-                      alt={post.data.title}
-                      className="article-img"
-                    />
-                  ) : (
-                    <div className="no-image">
-                      <FaNewspaper className="icon" />
-                    </div>
-                  )}
-                </div>
-                <div className="content">
-                  <h3>
-                    <a
-                      href={`https://www.reddit.com${post.data.permalink}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {post.data.title}
+        {/* News Grid */}
+        <div className="news-wrap">
+          {loading ? (
+            <NewsSkeletonLoader />
+          ) : (
+            <div className="news-grid">
+              {articles.map(article => (
+                <article key={article.id} className="article-card">
+                  {/* Random image for visual interest (picsum) */}
+                  <img
+                    className={`article-image ${
+                      ['grad-blue-to-teal', 'grad-purple-to-pink', 'grad-yellow-to-orange'][Math.floor(Math.random() * 3)]
+                    }`}
+                    src={`https://picsum.photos/600/360?random=${Math.floor(Math.random() * 100000)}`}
+                    alt={article.title}
+                    loading="lazy"
+                  />
+                  <div className="card-body">
+                    <a href={article.article_link} target="_blank" rel="noopener noreferrer" className="article-link">
+                      <h2 className="article-title">{article.title}</h2>
+                      <div className="article-meta">
+                        <span className="article-source">{article.source_title}</span>
+                        <span className="meta-sep">•</span>
+                        <time className="article-date">
+                          {new Date(article.pub_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </time>
+                      </div>
+                      <p className="article-desc">{article.description}</p>
+                      <div className="read-more">
+                        Read more
+                        <svg className="read-more-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </a>
-                  </h3>
-                  <p>{post.data.selftext || "No additional content available."}</p>
-                  <p className="author">Posted by {post.data.author}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer>
-        <div className="container">
-          <h4>Connect with Me</h4>
-          <p>
-            I'm a Frontend Developer passionate about building meaningful web applications. Let's connect!
-          </p>
-          <div className="social-links">
-            <a
-              href="https://github.com/vansh-frontend"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="GitHub"
-            >
-              <FaGithub />
-            </a>
-            <a
-              href="https://www.linkedin.com/in/vansh-dhalor-000a7524a/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn"
-            >
-              <FaLinkedin />
-            </a>
-            <a href="mailto:vanshdhalor04@gmail.com" aria-label="Email">
-              <AiOutlineMail />
-            </a>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 };
